@@ -15,13 +15,12 @@ import adminRoutes from './routes/admin';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
 
-// Завантаження змінних середовища
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Базові middleware для безпеки та оптимізації
+// Security & optimization middleware
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -36,7 +35,7 @@ app.use(helmet({
 app.use(compression());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-// CORS налаштування
+// CORS config for dev and prod
 app.use(cors({
   origin: [
     'http://localhost:5173',
@@ -49,18 +48,18 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Парсинг тіла запитів та cookies
+// Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// Обмеження кількості запитів
+// Rate limiting
 app.use(rateLimiter);
 
-// Статичні файли для завантажених вкладень
+// Static files for uploads
 app.use('/uploads', express.static('uploads'));
 
-// Health check ендпоінт
+// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -70,44 +69,44 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API маршрути
+// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/feedbacks', feedbackRoutes);
 app.use('/api/admin', adminRoutes);
 
-// 404 handler для невідомих маршрутів
+// 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
-    message: 'Маршрут не знайдено'
+    message: 'Route not found'
   });
 });
 
-// Глобальний обробник помилок
+// Global error handler
 app.use(errorHandler);
 
-// Запуск сервера
+// Start server
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Сервер запущено на порті ${PORT}`);
-  console.log(`📝 API документація: http://localhost:${PORT}/api`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📝 API docs: http://localhost:${PORT}/api`);
   console.log(`🏥 Health check: http://localhost:${PORT}/health`);
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM сигнал отримано: закриваємо HTTP сервер');
+  console.log('SIGTERM received: closing HTTP server');
   server.close(() => {
-    console.log('HTTP сервер закрито');
+    console.log('HTTP server closed');
     process.exit(0);
   });
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT сигнал отримано: закриваємо HTTP сервер');
+  console.log('SIGINT received: closing HTTP server');
   server.close(() => {
-    console.log('HTTP сервер закрито');
+    console.log('HTTP server closed');
     process.exit(0);
   });
 });
