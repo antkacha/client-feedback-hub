@@ -16,7 +16,7 @@ const router = Router();
 // Получение списка проектов
 router.get('/', getProjects);
 
-// Создание нового проекта
+// Create new project
 router.post('/', createProject);
 
 // Получение проекта по ID

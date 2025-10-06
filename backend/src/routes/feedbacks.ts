@@ -14,7 +14,7 @@ const router = Router();
 // Получение списка фидбеков проекта
 router.get('/', getFeedbacks);
 
-// Создание нового фидбека
+// Create new feedback
 router.post('/', createFeedback);
 
 // ШІ аналіз фідбеку
