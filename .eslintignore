@@ -1,0 +1,100 @@
+# Файли та папки які ESLint має ігнорувати
+
+# Збірка та dist папки
+dist/
+build/
+out/
+
+# Node modules
+node_modules/
+
+# Coverage звіти
+coverage/
+.nyc_output/
+
+# Logs
+*.log
+logs/
+
+# Runtime files
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# ESLint cache
+.eslintcache
+
+# Prettier cache
+.prettiercache
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Build artifacts
+*.tgz
+*.tar.gz
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Temporary folders
+tmp/
+temp/
+.tmp/
+
+# Test files (якщо не хочете лінтити)
+# **/*.test.ts
+# **/*.spec.ts
+
+# Legacy/third-party code
+vendor/
+legacy/
+
+# Auto-generated files
+*.generated.ts
+*.generated.js
+
+# Prisma generated files
+prisma/generated/
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+
+# CI/CD files
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Package files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Backup files
+backup-*/
+*.backup

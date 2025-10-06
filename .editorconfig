@@ -1,0 +1,90 @@
+# EditorConfig конфігурація для консистентного форматування коду
+# Працює з більшістю редакторів та IDE
+# Документація: https://editorconfig.org/
+
+# Основний конфіг файл
+root = true
+
+# Загальні налаштування для всіх файлів
+[*]
+charset = utf-8                  # Кодування UTF-8 для всіх файлів
+end_of_line = lf                 # Unix-style перенос рядків (LF)
+insert_final_newline = true      # Додавати порожній рядок в кінці файлу
+trim_trailing_whitespace = true  # Видаляти зайві пробіли в кінці рядків
+indent_style = space            # Використовувати пробіли замість табів
+indent_size = 2                 # Розмір відступу - 2 пробіли
+
+# JavaScript, TypeScript, JSX, TSX файли
+[*.{js,jsx,ts,tsx}]
+indent_size = 2                 # 2 пробіли для JS/TS файлів
+max_line_length = 100          # Максимальна довжина рядка - 100 символів
+quote_type = single            # Одинарні лапки за замовчуванням
+
+# JSON файли
+[*.json]
+indent_size = 2                # 2 пробіли для JSON
+insert_final_newline = false   # JSON файли часто не потребують кінцевого переносу
+
+# YAML файли
+[*.{yml,yaml}]
+indent_size = 2                # 2 пробіли для YAML
+max_line_length = 120          # YAML може мати довші рядки
+
+# Markdown файли
+[*.md]
+indent_size = 2                # 2 пробіли для Markdown
+max_line_length = 80           # 80 символів для кращої читабельності
+trim_trailing_whitespace = false # Markdown може використовувати trailing spaces
+
+# HTML файли
+[*.html]
+indent_size = 2                # 2 пробіли для HTML
+max_line_length = 120          # HTML може мати довші рядки
+
+# CSS, SCSS, SASS файли
+[*.{css,scss,sass}]
+indent_size = 2                # 2 пробіли для стилів
+max_line_length = 100          # 100 символів для стилів
+
+# XML файли
+[*.xml]
+indent_size = 2                # 2 пробіли для XML
+
+# Shell scripts
+[*.{sh,bash}]
+indent_size = 4                # 4 пробіли для shell скриптів (стандарт)
+max_line_length = 120          # Довші рядки допустимі в скриптах
+
+# Python файли (якщо будуть)
+[*.py]
+indent_size = 4                # 4 пробіли для Python (PEP 8)
+max_line_length = 88           # Black formatter стандарт
+
+# Dotfiles (конфігураційні файли)
+[.{prettierrc,eslintrc,babelrc,stylelintrc}]
+indent_size = 2                # 2 пробіли для конфігів
+
+# Package files
+[package.json]
+indent_size = 2                # 2 пробіли для package.json
+
+# Lock files (не редагуються вручну)
+[*.lock]
+insert_final_newline = false   # Lock файли можуть не мати кінцевого переносу
+trim_trailing_whitespace = false # Не змінювати lock файли
+
+# Environment files
+[.env*]
+trim_trailing_whitespace = true # Видаляти зайві пробіли в .env файлах
+
+# Git files
+[.git*]
+trim_trailing_whitespace = false # Git файли можуть мати специфічне форматування
+
+# Docker files
+[{Dockerfile,docker-compose.yml,docker-compose.yaml}]
+indent_size = 2                # 2 пробіли для Docker файлів
+
+# Prisma schema files
+[*.prisma]
+indent_size = 2                # 2 пробіли для Prisma схем

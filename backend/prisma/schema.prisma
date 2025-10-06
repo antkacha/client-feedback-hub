@@ -1,0 +1,93 @@
+// Схема бази даних для Client Feedback Hub
+// Генератор клієнта Prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Підключення до бази даних SQLite
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Модель користувача системи
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  role      String   @default("USER") // USER, MANAGER, ADMIN
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Зв'язки з іншими моделями
+  ownedProjects Project[] @relation("ProjectOwner")
+  feedbacks     Feedback[]
+
+  @@map("users")
+}
+
+// Модель проєкту для збору фідбеків
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  url         String?
+  isActive    Boolean  @default(true) @map("is_active")
+  ownerId     String   @map("owner_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Зв'язки з іншими моделями
+  owner     User       @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  feedbacks Feedback[]
+
+  @@map("projects")
+}
+
+// Модель фідбеку від клієнта
+model Feedback {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  category    String   @default("general") // color, typography, layout, ux, accessibility, branding, general
+  severity    String   @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  status      String   @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  projectId   String   @map("project_id")
+  
+  // Автор фідбеку (може бути зареєстрованим користувачем або анонімним)
+  authorId    String?  @map("author_id")
+  authorEmail String?  @map("author_email")
+  authorName  String?  @map("author_name")
+  
+  // Координати для pin tool (JSON у вигляді тексту)
+  coordinates String?
+  
+  // CSS селектор елемента на сторінці
+  selector    String?
+  
+  // Прикріплені файли (JSON у вигляді тексту)
+  attachments String?
+  
+  // ШІ-аналіз фідбеку (JSON у вигляді тексту)
+  aiAnalysis  String?  @map("ai_analysis") // JSON з аналізом ШІ, завданнями для дизайнера та рекомендаціями
+  
+  // Прапорець чи потрібно регенерувати ШІ-аналіз
+  needsAiRegeneration Boolean @default(false) @map("needs_ai_regeneration")
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Зв'язки з іншими моделями
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@map("feedbacks")
+}
+
+// SQLite не підтримує enum'и, тому використовуємо String з коментарями:
+// UserRole: USER, MANAGER, ADMIN
+// FeedbackSeverity: LOW, MEDIUM, HIGH, CRITICAL  
+// FeedbackStatus: OPEN, IN_PROGRESS, RESOLVED, CLOSED

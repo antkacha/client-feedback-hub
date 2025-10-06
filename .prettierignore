@@ -1,0 +1,79 @@
+# Файли та папки які Prettier має ігнорувати
+
+# Збірка та dist папки
+dist/
+build/
+out/
+
+# Node modules
+node_modules/
+
+# Coverage звіти
+coverage/
+.nyc_output/
+
+# Logs
+*.log
+logs/
+
+# Package files (не форматувати автогенеровані lock файли)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Prettier cache
+.prettiercache
+
+# Environment files (можуть містити sensitive data)
+.env
+.env.*
+!.env.example
+
+# Temporary folders
+tmp/
+temp/
+.tmp/
+
+# Auto-generated files
+*.generated.ts
+*.generated.js
+*.generated.json
+
+# Prisma generated files
+prisma/generated/
+
+# Binary files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.pdf
+*.zip
+*.tar
+*.gz
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+backup-*/
+*.backup
+
+# Third-party/vendor code
+vendor/
+legacy/
+public/vendor/
+
+# Next.js specific
+.next/
+.cache/
+.parcel-cache/
+
+# Documentation що не потрібно форматувати
+CHANGELOG.md
+LICENSE
+AUTHORS

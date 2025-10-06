@@ -1,0 +1,344 @@
+# GitHub Actions CI/CD workflow для Client Feedback Hub
+# Автоматично запускається при push та pull request до main та develop гілок
+# Виконує лінтинг, тестування, type-checking та збірку проекту
+
+name: 'CI/CD Pipeline'
+
+# Тригери для запуску workflow
+on:
+  # Запуск при push до основних гілок
+  push:
+    branches: [main, develop]
+  
+  # Запуск при створенні pull request до основних гілок
+  pull_request:
+    branches: [main, develop]
+  
+  # Дозволити ручний запуск workflow
+  workflow_dispatch:
+
+# Дозволи для токену GitHub
+permissions:
+  contents: read # Читати код репозиторію
+  checks: write  # Записувати результати перевірок
+  pull-requests: write # Коментувати PR
+
+# Змінні середовища
+env:
+  NODE_VERSION: '18.x' # Версія Node.js для використання
+  CACHE_VERSION: 'v1'  # Версія кешу (збільшити при потребі скинути кеш)
+
+# Jobs (завдання) які виконуються паралельно
+jobs:
+  # ========== Перевірка коду (лінтинг, форматування) ==========
+  lint:
+    name: '🔍 Перевірка коду'
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Завантажуємо код з репозиторію
+      - name: '📥 Завантаження коду'
+        uses: actions/checkout@v4
+      
+      # Налаштовуємо Node.js з кешуванням npm
+      - name: '⚙️ Налаштування Node.js'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      # Встановлюємо залежності
+      - name: '📦 Встановлення залежностей'
+        run: |
+          npm ci
+          cd frontend && npm ci
+          cd ../server && npm ci
+      
+      # Запускаємо ESLint перевірку
+      - name: '🔍 ESLint перевірка'
+        run: npm run lint
+      
+      # Перевіряємо форматування коду
+      - name: '💅 Перевірка форматування'
+        run: npm run format:check
+
+  # ========== Type checking ==========
+  typecheck:
+    name: '🔧 Перевірка типів'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: '📥 Завантаження коду'
+        uses: actions/checkout@v4
+      
+      - name: '⚙️ Налаштування Node.js'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: '📦 Встановлення залежностей'
+        run: |
+          npm ci
+          cd frontend && npm ci
+          cd ../server && npm ci
+      
+      # TypeScript type checking для frontend
+      - name: '🔧 TypeScript перевірка (Frontend)'
+        run: npm run typecheck:frontend
+      
+      # TypeScript type checking для backend
+      - name: '🔧 TypeScript перевірка (Backend)'
+        run: npm run typecheck:backend
+
+  # ========== Тестування ==========
+  test:
+    name: '🧪 Тестування'
+    runs-on: ubuntu-latest
+    
+    # Налаштування бази даних для тестів
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    env:
+      # Змінні середовища для тестів
+      DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+      JWT_ACCESS_SECRET: test-access-secret
+      JWT_REFRESH_SECRET: test-refresh-secret
+      NODE_ENV: test
+    
+    steps:
+      - name: '📥 Завантаження коду'
+        uses: actions/checkout@v4
+      
+      - name: '⚙️ Налаштування Node.js'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: '📦 Встановлення залежностей'
+        run: |
+          npm ci
+          cd frontend && npm ci
+          cd ../server && npm ci
+      
+      # Підготовка бази даних для тестів
+      - name: '🗄️ Підготовка бази даних'
+        run: |
+          cd server
+          npx prisma generate
+          npx prisma db push
+      
+      # Запуск тестів frontend
+      - name: '🧪 Тести Frontend'
+        run: npm run test:frontend -- --coverage --watchAll=false
+      
+      # Запуск тестів backend
+      - name: '🧪 Тести Backend'
+        run: npm run test:backend -- --coverage --watchAll=false
+      
+      # Завантаження звітів про покриття коду
+      - name: '📊 Завантаження звіту покриття'
+        uses: codecov/codecov-action@v3
+        with:
+          directory: ./coverage
+          flags: unittests
+          name: codecov-umbrella
+
+  # ========== Збірка проекту ==========
+  build:
+    name: '🏗️ Збірка проекту'
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck] # Запускається тільки після успішного лінтингу та type-check
+    
+    steps:
+      - name: '📥 Завантаження коду'
+        uses: actions/checkout@v4
+      
+      - name: '⚙️ Налаштування Node.js'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: '📦 Встановлення залежностей'
+        run: |
+          npm ci
+          cd frontend && npm ci
+          cd ../server && npm ci
+      
+      # Генерація Prisma клієнта
+      - name: '🔧 Генерація Prisma клієнта'
+        run: |
+          cd server
+          npx prisma generate
+      
+      # Збірка frontend
+      - name: '🏗️ Збірка Frontend'
+        run: npm run build:frontend
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || 'http://localhost:5000/api' }}
+      
+      # Збірка backend
+      - name: '🏗️ Збірка Backend'
+        run: npm run build:backend
+      
+      # Архівування результатів збірки
+      - name: '📦 Архівування Frontend збірки'
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-build
+          path: frontend/dist/
+          retention-days: 7
+      
+      - name: '📦 Архівування Backend збірки'
+        uses: actions/upload-artifact@v3
+        with:
+          name: backend-build  
+          path: server/dist/
+          retention-days: 7
+
+  # ========== Інтеграційні тести ==========
+  integration-tests:
+    name: '🔗 Інтеграційні тести'
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: integration_test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    env:
+      DATABASE_URL: postgresql://test_user:test_password@localhost:5432/integration_test_db
+      JWT_ACCESS_SECRET: integration-test-access-secret
+      JWT_REFRESH_SECRET: integration-test-refresh-secret
+      NODE_ENV: test
+    
+    steps:
+      - name: '📥 Завантаження коду'
+        uses: actions/checkout@v4
+      
+      - name: '⚙️ Налаштування Node.js'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: '📦 Встановлення залежностей'
+        run: |
+          npm ci
+          cd server && npm ci
+      
+      - name: '🗄️ Підготовка бази даних'
+        run: |
+          cd server
+          npx prisma generate
+          npx prisma db push
+          npx prisma db seed
+      
+      # Завантажуємо збірку backend
+      - name: '📥 Завантаження Backend збірки'
+        uses: actions/download-artifact@v3
+        with:
+          name: backend-build
+          path: server/dist/
+      
+      # Запуск інтеграційних тестів
+      - name: '🔗 Запуск інтеграційних тестів'
+        run: npm run test:flow
+        timeout-minutes: 10
+
+  # ========== Перевірка безпеки ==========
+  security:
+    name: '🛡️ Перевірка безпеки'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: '📥 Завантаження коду'
+        uses: actions/checkout@v4
+      
+      - name: '⚙️ Налаштування Node.js'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: '📦 Встановлення залежностей'
+        run: |
+          npm ci
+          cd frontend && npm ci
+          cd ../server && npm ci
+      
+      # Перевірка відомих вразливостей
+      - name: '🛡️ Аудит npm пакетів'
+        run: |
+          npm audit --audit-level=moderate
+          cd frontend && npm audit --audit-level=moderate
+          cd ../server && npm audit --audit-level=moderate
+      
+      # Перевірка з допомогою Snyk (якщо налаштовано)
+      - name: '🔍 Snyk Security Scan'
+        uses: snyk/actions/node@master
+        continue-on-error: true # Не зупиняти збірку при знаходженні вразливостей
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+  # ========== Фінальний статус ==========
+  status:
+    name: '✅ Статус збірки'
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test, build, security]
+    if: always() # Завжди запускати, навіть якщо попередні jobs провалились
+    
+    steps:
+      - name: '📊 Звіт про результати'
+        run: |
+          echo "## 🎯 Результати CI/CD Pipeline" >> $GITHUB_STEP_SUMMARY
+          echo "| Перевірка | Статус |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔍 Лінтинг | ${{ needs.lint.result == 'success' && '✅ Пройдено' || '❌ Провалено' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔧 Type Check | ${{ needs.typecheck.result == 'success' && '✅ Пройдено' || '❌ Провалено' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Тести | ${{ needs.test.result == 'success' && '✅ Пройдено' || '❌ Провалено' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏗️ Збірка | ${{ needs.build.result == 'success' && '✅ Пройдено' || '❌ Провалено' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🛡️ Безпека | ${{ needs.security.result == 'success' && '✅ Пройдено' || '⚠️ Попередження' }} |" >> $GITHUB_STEP_SUMMARY
+      
+      # Встановлення загального статусу
+      - name: '✅ Успішне завершення'
+        if: needs.lint.result == 'success' && needs.typecheck.result == 'success' && needs.test.result == 'success' && needs.build.result == 'success'
+        run: |
+          echo "🎉 Всі перевірки пройшли успішно!"
+          echo "Код готовий до деплою 🚀"
+      
+      - name: '❌ Провал збірки'
+        if: needs.lint.result != 'success' || needs.typecheck.result != 'success' || needs.test.result != 'success' || needs.build.result != 'success'
+        run: |
+          echo "💥 Деякі перевірки провалились!"
+          echo "Будь ласка, виправте помилки перед merge"
+          exit 1

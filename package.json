@@ -1,0 +1,89 @@
+{
+  "name": "client-feedback-hub",
+  "version": "1.0.0",
+  "description": "Client Feedback Hub - SaaS платформа для збору та управління відгуками клієнтів",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd server && npm run dev",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd server && npm run build",
+    "test": "npm run test:frontend && npm run test:backend",
+    "test:frontend": "cd frontend && npm run test",
+    "test:backend": "cd server && npm run test",
+    "test:ci": "npm run test:frontend -- --watchAll=false && npm run test:backend -- --watchAll=false",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint:backend": "cd server && npm run lint",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md,yml,yaml}\"",
+    "typecheck": "npm run typecheck:frontend && npm run typecheck:backend",
+    "typecheck:frontend": "cd frontend && npm run typecheck",
+    "typecheck:backend": "cd server && npm run typecheck",
+    "prepare": "husky install",
+    "setup": "./setup-dev.sh",
+    "auto-fix": "./scripts/auto_fix_and_report.sh",
+    "test:flow": "npx ts-node test-flow.ts",
+    "clean": "npm run clean:frontend && npm run clean:backend",
+    "clean:frontend": "cd frontend && rm -rf node_modules dist",
+    "clean:backend": "cd server && rm -rf node_modules dist",
+    "install:all": "npm install && cd frontend && npm install && cd ../server && npm install",
+    "deploy:local": "./deploy.sh deploy local",
+    "deploy:staging": "./deploy.sh deploy staging",
+    "deploy:production": "./deploy.sh deploy production",
+    "deploy:status": "./deploy.sh status",
+    "deploy:logs": "./deploy.sh logs"
+  },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "@typescript-eslint/eslint-plugin": "^6.19.1",
+    "@typescript-eslint/parser": "^6.19.1",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-unused-imports": "^3.0.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.2.4",
+    "prettier-plugin-tailwindcss": "^0.5.11",
+    "typescript": "^5.9.2"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write",
+      "git add"
+    ],
+    "*.{json,md,yml,yaml,css,scss}": [
+      "prettier --write",
+      "git add"
+    ],
+    "*.{ts,tsx}": [
+      "bash -c 'npm run typecheck'"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/client-feedback-hub.git"
+  },
+  "keywords": [
+    "feedback",
+    "saas",
+    "client-management",
+    "typescript",
+    "react",
+    "node.js"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}

@@ -1,0 +1,255 @@
+// Конфігурація Prisma для Client Feedback Hub
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Модель ролей користувачів для системи авторизації
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique // admin, moderator, user
+  description String?
+  permissions Json? // JSON з дозволами: {"projects": ["create", "read", "update", "delete"]}
+  
+  // Зв'язки
+  users       User[]
+  
+  // Системні поля
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isDeleted   Boolean  @default(false)
+  
+  @@map("roles")
+}
+
+// Модель користувача системи
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String    // Хешований пароль через bcrypt
+  firstName       String
+  lastName        String
+  avatar          String?   // URL або шлях до файлу аватара
+  isEmailVerified Boolean   @default(false)
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  
+  // Зв'язок з роллю
+  roleId          String
+  role            Role      @relation(fields: [roleId], references: [id])
+  
+  // Refresh токени для JWT аутентифікації
+  refreshTokens   RefreshToken[]
+  
+  // Зв'язки з проектами
+  ownedProjects   Project[] @relation("ProjectOwner")
+  memberProjects  ProjectMember[]
+  
+  // Зв'язки з відгуками
+  reportedFeedbacks Feedback[] @relation("FeedbackReporter")
+  assignedFeedbacks Feedback[] @relation("FeedbackAssignee")
+  
+  // Коментарі до відгуків
+  comments        Comment[]
+  
+  // Завантажені файли
+  uploadedAttachments Attachment[] @relation("UserAttachments")
+  
+  // Системні поля
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  isDeleted       Boolean   @default(false)
+  
+  @@map("users")
+}
+
+// Модель для зберігання refresh токенів
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  
+  // Системні поля
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isDeleted Boolean  @default(false)
+  
+  @@map("refresh_tokens")
+}
+
+// Модель проекту для збору відгуків
+model Project {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  websiteUrl  String? // URL сайту для якого збираються відгуки
+  isActive    Boolean @default(true)
+  
+  // Налаштування проекту
+  settings    Json?   // JSON з налаштуваннями: {"allowAnonymous": true, "moderateComments": false}
+  
+  // Власник проекту
+  ownerId     String
+  owner       User    @relation("ProjectOwner", fields: [ownerId], references: [id])
+  
+  // Учасники проекту
+  members     ProjectMember[]
+  
+  // Відгуки до проекту
+  feedbacks   Feedback[]
+  
+  // Системні поля
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isDeleted   Boolean  @default(false)
+  
+  @@map("projects")
+}
+
+// Модель учасників проекту (багато-до-багатьох зв'язок User-Project)
+model ProjectMember {
+  id        String   @id @default(cuid())
+  
+  // Зв'язки
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Роль в проекті
+  role      String   @default("member") // owner, admin, moderator, member
+  
+  // Дозволи в проекті
+  permissions Json?  // JSON з дозволами для конкретного проекту
+  
+  // Системні поля
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isDeleted Boolean  @default(false)
+  
+  @@unique([userId, projectId])
+  @@map("project_members")
+}
+
+// Модель відгуку користувача
+model Feedback {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  
+  // Статус відгуку
+  status      String   @default("open") // open, in_progress, resolved, closed
+  
+  // Пріоритет та важливість
+  priority    String   @default("medium") // low, medium, high, critical
+  severity    String   @default("medium") // low, medium, high
+  
+  // Тип відгуку
+  type        String   @default("bug") // bug, feature, improvement, question, other
+  
+  // Візуальне позиціонування (для pin-based feedback)
+  pinData     Json?    // JSON: {"x": 100, "y": 200, "selector": ".button", "screenshotUrl": "..."}
+  
+  // Технічна інформація
+  browserInfo Json?    // JSON з інформацією про браузер, ОС, тощо
+  
+  // Зв'язок з проектом
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Автор відгуку
+  reporterId  String
+  reporter    User     @relation("FeedbackReporter", fields: [reporterId], references: [id])
+  
+  // Відповідальний за вирішення
+  assigneeId  String?
+  assignee    User?    @relation("FeedbackAssignee", fields: [assigneeId], references: [id])
+  
+  // Дати життєвого циклу
+  resolvedAt  DateTime?
+  closedAt    DateTime?
+  
+  // Зв'язки
+  comments    Comment[]
+  attachments Attachment[]
+  
+  // Системні поля
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isDeleted   Boolean  @default(false)
+  
+  @@map("feedbacks")
+}
+
+// Модель коментарів до відгуків
+model Comment {
+  id         String   @id @default(cuid())
+  content    String
+  
+  // Зв'язок з відгуком
+  feedbackId String
+  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  
+  // Автор коментаря
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  
+  // Відповідь на інший коментар (thread)
+  parentId   String?
+  parent     Comment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies    Comment[] @relation("CommentReplies")
+  
+  // Модерація
+  isInternal Boolean  @default(false) // Внутрішній коментар для команди
+  
+  // Системні поля
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  isDeleted  Boolean  @default(false)
+  
+  @@map("comments")
+}
+
+// Модель прикріплених файлів
+model Attachment {
+  id          String   @id @default(cuid())
+  originalName String  // Оригінальна назва файлу
+  fileName    String   // Назва файлу в файловій системі
+  filePath    String   // Шлях до файлу
+  fileSize    Int      // Розмір файлу в байтах
+  mimeType    String   // MIME тип файлу
+  
+  // Метадані для зображень
+  width       Int?     // Ширина зображення
+  height      Int?     // Висота зображення
+  
+  // Зв'язок з відгуком
+  feedbackId  String
+  feedback    Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  
+  // Автор завантаження
+  uploadedById String
+  uploadedBy   User    @relation("UserAttachments", fields: [uploadedById], references: [id])
+  
+  // Системні поля
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isDeleted   Boolean  @default(false)
+  
+  @@map("attachments")
+}
+
+// Індекси для оптимізації запитів
+// Додаткові індекси можна створити через міграції при потребі
+
+// Композитні індекси для часто використовуваних запитів
+// @@index([projectId, status]) - на Feedback
+// @@index([projectId, createdAt]) - на Feedback  
+// @@index([email]) - на User (автоматично через @unique)
+// @@index([feedbackId, createdAt]) - на Comment
