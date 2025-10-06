@@ -15,7 +15,7 @@
 
 ```bash
 # Клонирование
-git clone https://github.com/yourusername/client-feedback-hub.git
+git clone https://github.com/antkacha/client-feedback-hub.git
 cd client-feedback-hub
 
 # Установка зависимостей
